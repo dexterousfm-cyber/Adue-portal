@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIS - Admin Dashboard</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+:root { --red:#8B0000; --dark-red:#5C0000; --green:#28a745; }
+body { background:#f5f5f5; min-height:100vh; }
+.header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:14px 30px; background:var(--red); color:white; border-bottom:3px solid #fff;
+}
+.header-left { display:flex; align-items:center; gap:12px; }
+.header-left img { width:38px; height:auto; }
+.header h1 { font-size:18px; font-weight:600; }
+.profile { display:flex; align-items:center; gap:15px; }
+.profile button {
+  padding:8px 18px; background:rgba(255,255,255,0.2); border:1px solid white;
+  color:white; border-radius:5px; cursor:pointer; font-weight:600;
+}
+.profile button:hover { background:white; color:var(--red); }
+.main { padding:30px; max-width:1100px; margin:0 auto; }
+.stats-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; margin-bottom:30px; }
+.stat-card {
+  background:white; padding:25px; border-radius:10px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.08); border-top:4px solid var(--red); text-align:center;
+}
+.stat-card h3 { font-size:32px; color:var(--red); margin-bottom:5px; }
+.stat-card p { color:#666; font-size:14px; }
+.action-bar {
+  background:white; padding:20px; border-radius:10px; margin-bottom:20px;
+  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;
+  border-left:4px solid var(--red);
+}
+.action-bar h2 { color:var(--red); font-size:18px; }
+.btn-link {
+  padding:10px 20px; border:none; border-radius:6px; cursor:pointer;
+  font-weight:600; font-size:14px; text-decoration:none; display:inline-block;
+}
+.btn-primary { background:var(--red); color:white; }
+.btn-primary:hover { background:var(--dark-red); }
+.btn-success { background:var(--green); color:white; }
+.btn-success:hover { background:#218838; }
+.table-container { background:white; border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,0.08); margin-bottom:25px; }
+.table-container h3 { padding:20px 20px 0; color:var(--red); font-size:16px; }
+table { width:100%; border-collapse:collapse; }
+th, td { padding:13px 15px; text-align:left; border-bottom:1px solid #f0f0f0; font-size:13px; }
+th { background:var(--red); color:white; font-weight:600; text-transform:uppercase; font-size:11px; }
+tr:hover td { background:#fff5f5; }
+.badge { padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+.badge-student { background:var(--red); color:white; }
+.badge-teacher { background:var(--green); color:white; }
+.empty-state { text-align:center; padding:40px; color:#999; font-size:14px; }
+@media(max-width:600px) {
+  .stats-grid { grid-template-columns:1fr; }
+  .action-bar { flex-direction:column; align-items:flex-start; }
+}
+</style>
+</head>
+<body>
+<div class="header">
+<div class="header-left">
+<img src="logo.png" alt="AIS">
+<h1>AIS Admin Portal</h1>
+</div>
+<div class="profile">
+<span id="adminName">Loading...</span>
+<button onclick="logout()">Logout</button>
+</div>
+</div>
+
+<div class="main">
+<div class="stats-grid">
+<div class="stat-card"><h3 id="totalStudents">0</h3><p>Total Students</p></div>
+<div class="stat-card"><h3 id="totalTeachers">0</h3><p>Total Teachers</p></div>
+</div>
+
+<div class="action-bar">
+<h2>Quick Actions</h2>
+<div>
+<a href="register_student.html" class="btn-link btn-primary">+ Register Student</a>
+<a href="register_teacher.html" class="btn-link btn-success">+ Add Teacher</a>
+<a href="classes.html" class="btn-link btn-primary">📚 Classes</a>
+<a href="attendance.html" class="btn-link btn-success">📋 Attendance</a>
+<a href="grades.html" class="btn-link btn-primary">📝 Grades</a>
+<a href="fees.html" class="btn-link btn-success">💰 Fees</a>
+</div>
+</div>
+
+<div class="table-container">
+<h3>Recent Registrations</h3>
+<table>
+<thead><tr><th>Name</th><th>ID</th><th>Class / Dept</th><th>Type</th><th>Date</th></tr></thead>
+<tbody id="recentBody"></tbody>
+</table>
+<div id="emptyState" class="empty-state" style="display:none;">No registrations yet. Use the buttons above to add your first student or teacher.</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+// ==================== AUTH GUARD ====================
+(async () => {
+  const { data } = await sb.auth.getSession();
+  if (!data.session) { window.location.href = 'index.html'; return; }
+  document.getElementById('adminName').textContent = data.session.user.email;
+  loadDashboard();
+})();
+
+sb.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') window.location.href = 'index.html';
+});
+
+async function logout() {
+  await sb.auth.signOut();
+  window.location.href = 'index.html';
+}
+
+// ==================== DATA ====================
+async function loadDashboard() {
+  const [{ data: students, error: studErr }, { data: teachers, error: teachErr }] = await Promise.all([
+    sb.from('students').select('*').order('registered_date', { ascending: false }),
+    sb.from('teachers').select('*').order('registered_date', { ascending: false })
+  ]);
+
+  if (studErr || teachErr) {
+    console.error(studErr || teachErr);
+    document.getElementById('emptyState').textContent = 'Error loading data: ' + ((studErr || teachErr).message);
+    document.getElementById('emptyState').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('totalStudents').textContent = students.length;
+  document.getElementById('totalTeachers').textContent = teachers.length;
+
+  const combined = [
+    ...students.map(s => ({ ...s, _type: 'Student', _id: s.student_id, _group: s.class })),
+    ...teachers.map(t => ({ ...t, _type: 'Teacher', _id: t.teacher_id, _group: t.department }))
+  ].sort((a, b) => new Date(b.registered_date || 0) - new Date(a.registered_date || 0)).slice(0, 10);
+
+  const tbody = document.getElementById('recentBody');
+  const empty = document.getElementById('emptyState');
+
+  if (combined.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = combined.map(r => {
+    const name = ((r.first_name || '') + ' ' + (r.last_name || '')).trim();
+    const date = r.registered_date ? new Date(r.registered_date).toLocaleDateString() : '-';
+    const badgeClass = r._type === 'Teacher' ? 'badge-teacher' : 'badge-student';
+    return `<tr>
+<td><strong>${name}</strong></td>
+<td>${r._id || '-'}</td>
+<td>${r._group || '-'}</td>
+<td><span class="badge ${badgeClass}">${r._type}</span></td>
+<td>${date}</td>
+</tr>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
