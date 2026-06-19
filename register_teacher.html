@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIS - Register Teacher</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+:root { --red:#8B0000; --dark-red:#5C0000; --green:#28a745; --border:#ddd; }
+body { background:#f5f5f5; min-height:100vh; }
+.header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:14px 30px; background:var(--red); color:white; border-bottom:3px solid #fff; flex-wrap:wrap; gap:10px;
+}
+.header-left { display:flex; align-items:center; gap:12px; }
+.header-left img { width:36px; height:auto; }
+.header h1 { font-size:17px; font-weight:600; }
+.header-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.btn-hdr {
+  padding:8px 16px; border:1px solid rgba(255,255,255,0.4); background:rgba(255,255,255,0.15);
+  color:white; border-radius:5px; cursor:pointer; font-size:0.85rem; font-weight:600;
+  text-decoration:none; display:inline-flex; align-items:center; gap:5px;
+}
+.btn-hdr:hover { background:rgba(255,255,255,0.3); }
+.main { padding:2rem; max-width:1000px; margin:0 auto; }
+.page-title { color:var(--red); font-size:1.4rem; margin-bottom:1.5rem; }
+.stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.8rem; }
+.stat-card { background:white; border-radius:8px; padding:1.3rem; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.07); border-top:4px solid var(--red); }
+.stat-number { font-size:2rem; font-weight:bold; color:var(--red); }
+.stat-label { color:#666; font-size:0.78rem; text-transform:uppercase; }
+.form-container { background:white; border-radius:8px; padding:2rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); margin-bottom:1.8rem; border-top:4px solid var(--red); }
+.section-title { color:var(--red); font-size:1rem; font-weight:700; margin-bottom:1.2rem; padding-bottom:0.6rem; border-bottom:2px solid #f0f0f0; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; }
+.form-group { display:flex; flex-direction:column; gap:5px; }
+.form-group.full { grid-column:1/-1; }
+.form-group label { font-weight:600; color:#555; font-size:0.85rem; }
+.req { color:var(--red); }
+.form-group input, .form-group select, .form-group textarea {
+  padding:10px 12px; border:1px solid var(--border); border-radius:6px; font-size:0.92rem; background:#fafafa;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:var(--red); background:white; }
+.form-group small { color:#888; font-size:0.75rem; }
+.file-upload { border:2px dashed var(--border); border-radius:8px; padding:1.5rem; text-align:center; cursor:pointer; background:#fafafa; }
+.file-upload:hover { border-color:var(--red); }
+.file-upload input { display:none; }
+.file-name { color:var(--red); font-weight:600; font-size:0.85rem; margin-top:6px; }
+.form-actions { display:flex; gap:1rem; margin-top:1.5rem; padding-top:1.2rem; border-top:2px solid #f0f0f0; }
+.btn-primary { background:var(--red); color:white; padding:11px 26px; border:none; border-radius:6px; cursor:pointer; font-weight:700; }
+.btn-primary:hover { background:var(--dark-red); }
+.btn-secondary { background:#6c757d; color:white; padding:11px 20px; border:none; border-radius:6px; cursor:pointer; font-weight:600; }
+.btn-secondary:hover { background:#5a6268; }
+.alert { padding:11px 15px; border-radius:6px; margin-bottom:1rem; display:none; font-weight:600; border-left:4px solid; }
+.alert.show { display:block; }
+.alert-success { background:#d4edda; color:#155724; border-color:var(--green); }
+.alert-error { background:#f8d7da; color:#721c24; border-color:#dc3545; }
+h3.table-heading { color:var(--red); font-size:1.1rem; margin:1.3rem 0 0.9rem; }
+.table-container { background:white; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.07); margin-bottom:30px; overflow-x:auto; }
+table { width:100%; border-collapse:collapse; }
+th { background:var(--red); color:white; padding:12px 14px; text-align:left; font-size:11px; text-transform:uppercase; }
+td { padding:12px 14px; border-bottom:1px solid #f0f0f0; font-size:13px; }
+tr:hover td { background:#fff5f5; }
+td img { width:38px; height:38px; border-radius:50%; object-fit:cover; border:2px solid var(--red); }
+.avatar-ph { width:38px; height:38px; border-radius:50%; background:#f0f0f0; border:2px solid var(--red); display:inline-flex; align-items:center; justify-content:center; }
+.btn-sm { padding:5px 10px; border:none; border-radius:4px; cursor:pointer; font-size:11px; font-weight:700; margin-right:3px; }
+.btn-edit { background:var(--green); color:white; }
+.btn-del { background:#dc3545; color:white; }
+.empty-state { text-align:center; padding:40px; color:#999; font-size:13px; }
+@media(max-width:768px) { .form-grid { grid-template-columns:1fr; } .form-group.full { grid-column:1; } .stats-grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="header">
+<div class="header-left"><img src="logo.png" alt="AIS"><h1>AIS Admin Portal</h1></div>
+<div class="header-actions">
+<a href="dashboard.html" class="btn-hdr">🏠 Dashboard</a>
+<a href="register_student.html" class="btn-hdr">👨‍🎓 Students</a>
+<button class="btn-hdr" onclick="logout()">🚪 Logout</button>
+</div>
+</div>
+
+<div class="main">
+<div id="alertBox" class="alert"></div>
+<h1 class="page-title">👨‍🏫 Register New Teacher</h1>
+
+<div class="stats-grid">
+<div class="stat-card"><div class="stat-number" id="totalTeachers">0</div><div class="stat-label">Total Teachers</div></div>
+<div class="stat-card"><div class="stat-number" id="activeTeachers">0</div><div class="stat-label">Active</div></div>
+<div class="stat-card"><div class="stat-number" id="newThisMonth">0</div><div class="stat-label">Added This Month</div></div>
+</div>
+
+<div class="form-container">
+<div class="section-title">📝 Teacher Information</div>
+<div class="form-grid">
+<div class="form-group"><label>First Name <span class="req">*</span></label><input type="text" id="firstName" placeholder="e.g., Chioma"></div>
+<div class="form-group"><label>Last Name <span class="req">*</span></label><input type="text" id="lastName" placeholder="e.g., Adeyemi"></div>
+<div class="form-group"><label>Teacher ID</label><input type="text" id="teacherID" placeholder="e.g., TCH001"><small>Leave blank to auto-generate</small></div>
+<div class="form-group"><label>Email Address <span class="req">*</span></label><input type="email" id="email" placeholder="teacher@aisschool.edu"></div>
+<div class="form-group"><label>Phone Number <span class="req">*</span></label><input type="tel" id="phone" placeholder="+234 800 000 0000"></div>
+<div class="form-group"><label>Department <span class="req">*</span></label>
+<select id="department"><option value="">Select Department</option><option>Mathematics</option><option>Science</option><option>Languages</option><option>Arts</option><option>Social Studies</option><option>Physical Education</option><option>ICT</option></select></div>
+<div class="form-group"><label>Qualification <span class="req">*</span></label>
+<select id="qualification"><option value="">Select Qualification</option><option>B.Ed</option><option>B.Sc</option><option>B.A</option><option>M.Ed</option><option>M.Sc</option><option>PhD</option><option>PGDE</option></select></div>
+<div class="form-group"><label>Years of Experience</label><input type="number" id="experience" placeholder="e.g., 5" min="0" max="50"></div>
+<div class="form-group"><label>Role <span class="req">*</span></label>
+<select id="role"><option value="teacher">Teacher</option><option value="hod">Head of Department</option><option value="admin">Administrator</option></select></div>
+<div class="form-group"><label>Employment Type <span class="req">*</span></label>
+<select id="employmentType"><option value="full-time">Full Time</option><option value="part-time">Part Time</option><option value="contract">Contract</option></select></div>
+<div class="form-group"><label>Date of Birth</label><input type="date" id="dob"></div>
+<div class="form-group"><label>Joining Date <span class="req">*</span></label><input type="date" id="joiningDate"></div>
+<div class="form-group full"><label>Address</label><textarea id="address" placeholder="Residential address"></textarea></div>
+<div class="form-group"><label>Emergency Contact Name</label><input type="text" id="emergencyName" placeholder="Next of kin name"></div>
+<div class="form-group"><label>Emergency Contact Phone</label><input type="tel" id="emergencyPhone" placeholder="Emergency phone number"></div>
+<div class="form-group full"><label>Profile Picture</label>
+<div class="file-upload" onclick="document.getElementById('profilePic').click()">
+<input type="file" id="profilePic" accept="image/*" onchange="handleFileSelect(this)">
+<div>📷 Click to upload teacher photo (optional)</div>
+<div class="file-name" id="fileName"></div>
+</div></div>
+</div>
+<div class="form-actions">
+<button class="btn-primary" onclick="registerTeacher()">✓ Register Teacher</button>
+<button class="btn-secondary" onclick="resetForm()">↺ Reset Form</button>
+</div>
+</div>
+
+<h3 class="table-heading">👩‍🏫 Registered Teachers</h3>
+<div class="table-container">
+<table id="teachersTable">
+<thead><tr><th>Photo</th><th>ID</th><th>Name</th><th>Department</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+<div id="emptyState" class="empty-state" style="display:none;">No teachers registered yet.</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+// ==================== AUTH GUARD ====================
+let currentUser = null;
+(async () => {
+  const { data } = await sb.auth.getSession();
+  if (!data.session) { window.location.href = 'index.html'; return; }
+  currentUser = data.session.user;
+  loadAndRender();
+})();
+sb.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') window.location.href = 'index.html'; });
+async function logout() { await sb.auth.signOut(); window.location.href = 'index.html'; }
+
+let selectedFile = null;
+let teachersCache = [];
+
+function showAlert(message, type = 'success') {
+  const box = document.getElementById('alertBox');
+  box.textContent = message;
+  box.className = 'alert alert-' + type + ' show';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(() => { box.className = 'alert'; }, 4500);
+}
+function handleFileSelect(input) {
+  selectedFile = input.files[0] || null;
+  document.getElementById('fileName').textContent = selectedFile ? '✅ ' + selectedFile.name : '';
+}
+async function fetchTeachers() {
+  const { data, error } = await sb.from('teachers').select('*').order('registered_date', { ascending: false });
+  if (error) { showAlert('Error loading teachers: ' + error.message, 'error'); return []; }
+  return data || [];
+}
+function updateStats() {
+  const now = new Date();
+  const thisMonth = teachersCache.filter(t => {
+    if (!t.registered_date) return false;
+    const d = new Date(t.registered_date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+  document.getElementById('totalTeachers').textContent = teachersCache.length;
+  document.getElementById('activeTeachers').textContent = teachersCache.filter(t => t.status === 'Active').length;
+  document.getElementById('newThisMonth').textContent = thisMonth;
+}
+async function registerTeacher() {
+  const firstName = document.getElementById('firstName').value.trim();
+  const lastName = document.getElementById('lastName').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const department = document.getElementById('department').value;
+  const qualification = document.getElementById('qualification').value;
+  const joiningDate = document.getElementById('joiningDate').value;
+
+  if (!firstName || !lastName) { showAlert('First and Last name are required.', 'error'); return; }
+  if (!email) { showAlert('Email address is required.', 'error'); return; }
+  if (!phone) { showAlert('Phone number is required.', 'error'); return; }
+  if (!department) { showAlert('Please select a department.', 'error'); return; }
+  if (!qualification) { showAlert('Please select a qualification.', 'error'); return; }
+  if (!joiningDate) { showAlert('Joining date is required.', 'error'); return; }
+
+  if (teachersCache.find(t => t.email && t.email.toLowerCase() === email.toLowerCase())) {
+    showAlert('A teacher with this email already exists.', 'error'); return;
+  }
+
+  let id = document.getElementById('teacherID').value.trim();
+  if (!id) {
+    id = 'TCH' + String(teachersCache.length + 1).padStart(3, '0');
+    while (teachersCache.find(t => t.teacher_id === id)) id = 'TCH' + String(parseInt(id.slice(3)) + 1).padStart(3, '0');
+  } else if (teachersCache.find(t => (t.teacher_id || '').toLowerCase() === id.toLowerCase())) {
+    showAlert('Teacher ID "' + id + '" already exists.', 'error'); return;
+  }
+
+  const doSave = async (pic) => {
+    const teacher = {
+      teacher_id: id, first_name: firstName, last_name: lastName, email, phone, department, qualification,
+      experience: document.getElementById('experience').value || '0', role: document.getElementById('role').value,
+      employment_type: document.getElementById('employmentType').value, dob: document.getElementById('dob').value || null,
+      joining_date: joiningDate, address: document.getElementById('address').value.trim(),
+      emergency_name: document.getElementById('emergencyName').value.trim(), emergency_phone: document.getElementById('emergencyPhone').value.trim(),
+      profile_picture: pic || null, status: 'Active', registered_by: 'admin', registered_by_name: currentUser?.email || 'Admin'
+    };
+    const { error } = await sb.from('teachers').insert([teacher]);
+    if (error) { showAlert('Error saving teacher: ' + error.message, 'error'); return; }
+    resetForm(); await loadAndRender();
+    showAlert(`Teacher "${firstName} ${lastName}" registered successfully! ID: ${id}`);
+  };
+
+  if (selectedFile) { const reader = new FileReader(); reader.onload = e => doSave(e.target.result); reader.readAsDataURL(selectedFile); }
+  else await doSave(null);
+}
+function resetForm() {
+  ['firstName','lastName','teacherID','email','phone','experience','dob','address','emergencyName','emergencyPhone'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('department').value = '';
+  document.getElementById('qualification').value = '';
+  document.getElementById('role').value = 'teacher';
+  document.getElementById('employmentType').value = 'full-time';
+  document.getElementById('joiningDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('profilePic').value = '';
+  document.getElementById('fileName').textContent = '';
+  selectedFile = null;
+}
+function renderTable() {
+  const tbody = document.querySelector('#teachersTable tbody');
+  const empty = document.getElementById('emptyState');
+  if (teachersCache.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = teachersCache.map(t => {
+    const id = t.teacher_id || '-';
+    const name = ((t.first_name || '') + ' ' + (t.last_name || '')).trim();
+    const pic = t.profile_picture ? `<img src="${t.profile_picture}" alt="${name}">` : `<div class="avatar-ph">👤</div>`;
+    const roleLabel = t.role === 'hod' ? 'HOD' : t.role === 'admin' ? 'Admin' : 'Teacher';
+    return `<tr><td>${pic}</td><td>${id}</td><td><strong>${name}</strong></td><td>${t.department || '-'}</td><td>${t.email || '-'}</td><td>${roleLabel}</td>
+<td><button class="btn-sm btn-edit" onclick="editTeacher('${id}')">Edit</button><button class="btn-sm btn-del" onclick="deleteTeacher('${id}')">Delete</button></td></tr>`;
+  }).join('');
+}
+async function editTeacher(id) {
+  const t = teachersCache.find(tc => tc.teacher_id === id);
+  if (!t) return;
+  const newFirstName = prompt('First Name:', t.first_name || ''); if (newFirstName === null) return;
+  const newLastName = prompt('Last Name:', t.last_name || ''); if (newLastName === null) return;
+  const newDept = prompt('Department:', t.department || ''); if (newDept === null) return;
+  const newEmail = prompt('Email:', t.email || ''); if (newEmail === null) return;
+  const newPhone = prompt('Phone:', t.phone || ''); if (newPhone === null) return;
+  const { error } = await sb.from('teachers').update({
+    first_name: newFirstName.trim(), last_name: newLastName.trim(), department: newDept.trim(),
+    email: newEmail.trim(), phone: newPhone.trim()
+  }).eq('teacher_id', id);
+  if (error) { showAlert('Error updating teacher: ' + error.message, 'error'); return; }
+  await loadAndRender(); showAlert('Teacher updated successfully.');
+}
+async function deleteTeacher(id) {
+  if (!confirm('Delete this teacher? This cannot be undone.')) return;
+  const { error } = await sb.from('teachers').delete().eq('teacher_id', id);
+  if (error) { showAlert('Error deleting teacher: ' + error.message, 'error'); return; }
+  await loadAndRender(); showAlert('Teacher deleted.');
+}
+async function loadAndRender() { teachersCache = await fetchTeachers(); updateStats(); renderTable(); }
+</script>
+</body>
+</html>
