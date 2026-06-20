@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIS - Teacher Portal</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+:root { --red:#8B0000; --dark-red:#5C0000; --green:#28a745; }
+body { background:#f5f5f5; min-height:100vh; }
+.header { display:flex; justify-content:space-between; align-items:center; padding:14px 30px; background:var(--red); color:white; flex-wrap:wrap; gap:10px; }
+.header-left { display:flex; align-items:center; gap:12px; }
+.header-left img { width:36px; height:auto; }
+.header h1 { font-size:17px; font-weight:600; }
+.btn-hdr { padding:8px 16px; border:1px solid rgba(255,255,255,0.4); background:rgba(255,255,255,0.15); color:white; border-radius:5px; cursor:pointer; font-size:0.85rem; font-weight:600; text-decoration:none; display:inline-block; }
+.btn-hdr:hover { background:rgba(255,255,255,0.3); }
+.main { padding:2rem; max-width:950px; margin:0 auto; }
+.profile-card { background:white; border-radius:8px; padding:1.5rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); border-top:4px solid var(--red); margin-bottom:1.5rem; }
+.profile-card h2 { color:var(--red); font-size:1.2rem; margin-bottom:4px; }
+.profile-card p { color:#666; font-size:0.88rem; }
+.action-row { display:flex; gap:10px; margin-top:1rem; flex-wrap:wrap; }
+.btn-link { padding:10px 18px; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:13px; text-decoration:none; color:white; background:var(--red); }
+.btn-link:hover { background:var(--dark-red); }
+h3.table-heading { color:var(--red); font-size:1.1rem; margin:1.5rem 0 0.9rem; }
+.table-container { background:white; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.07); overflow-x:auto; }
+table { width:100%; border-collapse:collapse; }
+th { background:var(--red); color:white; padding:11px 13px; text-align:left; font-size:11px; text-transform:uppercase; }
+td { padding:10px 13px; border-bottom:1px solid #f0f0f0; font-size:13px; }
+.empty-state { text-align:center; padding:30px; color:#999; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="header">
+<div class="header-left"><img src="logo.png" alt="AIS"><h1>Teacher Portal</h1></div>
+<button class="btn-hdr" onclick="logout()">🚪 Logout</button>
+</div>
+
+<div class="main">
+<div class="profile-card" id="profileCard"></div>
+
+<h3 class="table-heading">👨‍🎓 My Class Roster</h3>
+<div class="table-container">
+<table><thead><tr><th>Name</th><th>ID</th><th>Gender</th><th>Parent Contact</th></tr></thead><tbody id="rosterBody"></tbody></table>
+<div id="rosterEmpty" class="empty-state" style="display:none;">No students in your assigned class yet, or you haven't been assigned a class. Ask the admin to set this on your teacher profile.</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+const teacherId = sessionStorage.getItem('teacher_session');
+if (!teacherId) window.location.href = 'teacher_login.html';
+
+function logout() { sessionStorage.removeItem('teacher_session'); window.location.href = 'teacher_login.html'; }
+
+async function loadAll() {
+  const { data: teacher } = await sb.from('teachers').select('*').eq('teacher_id', teacherId).maybeSingle();
+  if (!teacher) { logout(); return; }
+
+  const name = ((teacher.first_name || '') + ' ' + (teacher.last_name || '')).trim();
+  document.getElementById('profileCard').innerHTML = `
+<h2>${name}</h2>
+<p>${teacher.department || '-'} · ID: ${teacher.teacher_id} · Assigned Class: ${teacher.assigned_class || 'None'}</p>
+<div class="action-row">
+<a href="attendance.html" class="btn-link">📋 Take Attendance</a>
+<a href="grades.html" class="btn-link">📝 Enter Grades</a>
+</div>`;
+
+  const tbody = document.getElementById('rosterBody');
+  const empty = document.getElementById('rosterEmpty');
+  if (!teacher.assigned_class) { empty.style.display = 'block'; return; }
+
+  const { data: students } = await sb.from('students').select('*').eq('class', teacher.assigned_class);
+  if (!students || students.length === 0) { empty.style.display = 'block'; return; }
+
+  tbody.innerHTML = students.map(s => {
+    const sname = ((s.first_name || '') + ' ' + (s.last_name || '')).trim();
+    return `<tr><td>${sname}</td><td>${s.student_id}</td><td>${s.gender || '-'}</td><td>${s.parent_name || '-'} · ${s.parent_phone || '-'}</td></tr>`;
+  }).join('');
+}
+loadAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIS - My Portal</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+:root { --red:#8B0000; --dark-red:#5C0000; --green:#28a745; }
+body { background:#f5f5f5; min-height:100vh; }
+.header { display:flex; justify-content:space-between; align-items:center; padding:14px 30px; background:var(--red); color:white; flex-wrap:wrap; gap:10px; }
+.header-left { display:flex; align-items:center; gap:12px; }
+.header-left img { width:36px; height:auto; }
+.header h1 { font-size:17px; font-weight:600; }
+.btn-hdr { padding:8px 16px; border:1px solid rgba(255,255,255,0.4); background:rgba(255,255,255,0.15); color:white; border-radius:5px; cursor:pointer; font-size:0.85rem; font-weight:600; }
+.btn-hdr:hover { background:rgba(255,255,255,0.3); }
+.main { padding:2rem; max-width:950px; margin:0 auto; }
+.profile-card { background:white; border-radius:8px; padding:1.5rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); border-top:4px solid var(--red); margin-bottom:1.5rem; display:flex; align-items:center; gap:1.2rem; flex-wrap:wrap; }
+.profile-card img { width:70px; height:70px; border-radius:50%; object-fit:cover; border:3px solid var(--red); }
+.avatar-ph { width:70px; height:70px; border-radius:50%; background:#f0f0f0; border:3px solid var(--red); display:flex; align-items:center; justify-content:center; font-size:30px; }
+.profile-info h2 { color:var(--red); font-size:1.2rem; }
+.profile-info p { color:#666; font-size:0.85rem; }
+.stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.8rem; }
+.stat-card { background:white; border-radius:8px; padding:1.3rem; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.07); border-top:4px solid var(--red); }
+.stat-number { font-size:1.8rem; font-weight:bold; color:var(--red); }
+.stat-label { color:#666; font-size:0.78rem; text-transform:uppercase; }
+h3.table-heading { color:var(--red); font-size:1.1rem; margin:1.5rem 0 0.9rem; }
+.table-container { background:white; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.07); overflow-x:auto; margin-bottom:1.5rem; }
+table { width:100%; border-collapse:collapse; }
+th { background:var(--red); color:white; padding:11px 13px; text-align:left; font-size:11px; text-transform:uppercase; }
+td { padding:10px 13px; border-bottom:1px solid #f0f0f0; font-size:13px; }
+.badge { padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; color:white; }
+.badge-paid, .badge-present { background:var(--green); }
+.badge-partial, .badge-late { background:#ffc107; color:#333; }
+.badge-unpaid, .badge-absent { background:#dc3545; }
+.empty-state { text-align:center; padding:30px; color:#999; font-size:13px; }
+@media(max-width:600px) { .stats-grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="header">
+<div class="header-left"><img src="logo.png" alt="AIS"><h1>My Portal</h1></div>
+<button class="btn-hdr" onclick="logout()">🚪 Logout</button>
+</div>
+
+<div class="main">
+<div class="profile-card" id="profileCard"></div>
+
+<div class="stats-grid">
+<div class="stat-card"><div class="stat-number" id="avgScore">-</div><div class="stat-label">Average Score</div></div>
+<div class="stat-card"><div class="stat-number" id="attendanceRate">-</div><div class="stat-label">Attendance Rate</div></div>
+<div class="stat-card"><div class="stat-number" id="feesStatus">-</div><div class="stat-label">Fees Status</div></div>
+</div>
+
+<h3 class="table-heading">📝 My Grades</h3>
+<div class="table-container">
+<table><thead><tr><th>Subject</th><th>Term</th><th>Total</th><th>Grade</th></tr></thead><tbody id="gradesBody"></tbody></table>
+<div id="gradesEmpty" class="empty-state" style="display:none;">No grades recorded yet.</div>
+</div>
+
+<h3 class="table-heading">📋 My Attendance</h3>
+<div class="table-container">
+<table><thead><tr><th>Date</th><th>Status</th></tr></thead><tbody id="attBody"></tbody></table>
+<div id="attEmpty" class="empty-state" style="display:none;">No attendance recorded yet.</div>
+</div>
+
+<h3 class="table-heading">💰 My Fees</h3>
+<div class="table-container">
+<table><thead><tr><th>Term</th><th>Due</th><th>Paid</th><th>Status</th></tr></thead><tbody id="feesBody"></tbody></table>
+<div id="feesEmpty" class="empty-state" style="display:none;">No fee records yet.</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+const studentId = sessionStorage.getItem('student_session');
+if (!studentId) window.location.href = 'student_login.html';
+
+function logout() { sessionStorage.removeItem('student_session'); window.location.href = 'student_login.html'; }
+function badgeClass(s) { return ({Paid:'badge-paid', Partial:'badge-partial', Unpaid:'badge-unpaid', Present:'badge-present', Late:'badge-late', Absent:'badge-absent'})[s] || ''; }
+
+async function loadAll() {
+  const { data: student } = await sb.from('students').select('*').eq('student_id', studentId).maybeSingle();
+  if (!student) { logout(); return; }
+
+  const name = ((student.first_name || '') + ' ' + (student.last_name || '')).trim();
+  const pic = student.profile_picture ? `<img src="${student.profile_picture}">` : `<div class="avatar-ph">👤</div>`;
+  document.getElementById('profileCard').innerHTML = `${pic}
+<div class="profile-info"><h2>${name}</h2><p>${student.class || '-'} · ID: ${student.student_id}</p></div>`;
+
+  const { data: grades } = await sb.from('grades').select('*').eq('student_id', studentId).order('recorded_date', { ascending: false });
+  const gradesBody = document.getElementById('gradesBody');
+  if (!grades || grades.length === 0) { document.getElementById('gradesEmpty').style.display = 'block'; }
+  else {
+    gradesBody.innerHTML = grades.map(g => `<tr><td>${g.subject}</td><td>${g.term}</td><td>${g.score ?? '-'}</td><td>${g.grade_letter || '-'}</td></tr>`).join('');
+    const avg = grades.reduce((s, g) => s + (g.score || 0), 0) / grades.length;
+    document.getElementById('avgScore').textContent = avg.toFixed(1);
+  }
+
+  const { data: attendance } = await sb.from('attendance').select('*').eq('student_id', studentId).order('att_date', { ascending: false });
+  const attBody = document.getElementById('attBody');
+  if (!attendance || attendance.length === 0) { document.getElementById('attEmpty').style.display = 'block'; }
+  else {
+    attBody.innerHTML = attendance.map(a => `<tr><td>${a.att_date}</td><td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td></tr>`).join('');
+    const present = attendance.filter(a => a.status === 'Present').length;
+    document.getElementById('attendanceRate').textContent = Math.round((present / attendance.length) * 100) + '%';
+  }
+
+  const { data: fees } = await sb.from('fees').select('*').eq('student_id', studentId).order('recorded_date', { ascending: false });
+  const feesBody = document.getElementById('feesBody');
+  if (!fees || fees.length === 0) { document.getElementById('feesEmpty').style.display = 'block'; }
+  else {
+    feesBody.innerHTML = fees.map(f => `<tr><td>${f.term}</td><td>${f.amount_due}</td><td>${f.amount_paid}</td><td><span class="badge ${badgeClass(f.status)}">${f.status}</span></td></tr>`).join('');
+    document.getElementById('feesStatus').textContent = fees[0].status;
+  }
+}
+loadAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIS - Student Login</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+:root { --red:#8B0000; --dark-red:#5C0000; }
+body { background:linear-gradient(135deg, var(--red), var(--dark-red)); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+.login-card { background:white; border-radius:14px; padding:2.5rem 2.2rem; width:100%; max-width:380px; box-shadow:0 20px 50px rgba(0,0,0,0.3); text-align:center; }
+.logo { width:90px; height:auto; margin-bottom:1rem; }
+.school-name { color:var(--red); font-size:1.3rem; font-weight:700; margin-bottom:0.2rem; }
+.subtitle { color:#888; font-size:0.85rem; margin-bottom:1.8rem; }
+.form-group { text-align:left; margin-bottom:1.1rem; }
+.form-group label { display:block; font-size:0.85rem; font-weight:600; color:#555; margin-bottom:5px; }
+.form-group input { width:100%; padding:12px 14px; border:1px solid #ddd; border-radius:7px; font-size:0.95rem; background:#fafafa; }
+.form-group input:focus { outline:none; border-color:var(--red); background:white; }
+.btn-login { width:100%; padding:13px; background:var(--red); color:white; border:none; border-radius:7px; font-size:1rem; font-weight:700; cursor:pointer; margin-top:0.5rem; }
+.btn-login:hover { background:var(--dark-red); }
+.btn-login:disabled { background:#bbb; }
+.alert { display:none; background:#f8d7da; color:#721c24; padding:11px 14px; border-radius:7px; margin-bottom:1.1rem; font-size:0.85rem; font-weight:600; border-left:4px solid #dc3545; }
+.alert.show { display:block; }
+.back-link { display:block; margin-top:1.2rem; font-size:0.82rem; color:var(--red); text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="login-card">
+<img src="logo.png" alt="AIS Logo" class="logo">
+<div class="school-name">Student Portal</div>
+<div class="subtitle">Enter your Student ID and Date of Birth</div>
+<div id="alertBox" class="alert"></div>
+<form id="loginForm">
+<div class="form-group"><label>Student ID</label><input type="text" id="studentId" placeholder="e.g., STU001" required></div>
+<div class="form-group"><label>Date of Birth</label><input type="date" id="dob" required></div>
+<button type="submit" class="btn-login" id="loginBtn">View My Portal</button>
+</form>
+<a href="index.html" class="back-link">← Admin Login</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+function showAlert(msg) {
+  const box = document.getElementById('alertBox');
+  box.textContent = msg; box.className = 'alert show';
+}
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('studentId').value.trim();
+  const dob = document.getElementById('dob').value;
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Checking...';
+
+  const { data, error } = await sb.from('students').select('*').ilike('student_id', id).eq('dob', dob).maybeSingle();
+
+  btn.disabled = false; btn.textContent = 'View My Portal';
+
+  if (error || !data) {
+    showAlert('No matching student found. Check your ID and date of birth.');
+    return;
+  }
+  sessionStorage.setItem('student_session', data.student_id);
+  window.location.href = 'student_dashboard.html';
+});
+</script>
+</body>
+</html>
