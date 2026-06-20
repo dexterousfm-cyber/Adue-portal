@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIS - Login</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+:root { --red:#8B0000; --dark-red:#5C0000; }
+body { background:linear-gradient(135deg, var(--red), var(--dark-red)); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+.login-card { background:white; border-radius:14px; padding:2.5rem 2.2rem; width:100%; max-width:400px; box-shadow:0 20px 50px rgba(0,0,0,0.3); text-align:center; }
+.brand { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:0.3rem; }
+.brand img { width:55px; height:auto; }
+.brand-text { text-align:left; }
+.brand-text .name { color:var(--red); font-size:1.4rem; font-weight:800; line-height:1.1; }
+.subtitle { color:#888; font-size:0.85rem; margin-bottom:1.6rem; }
+.sign-in-label { font-weight:700; color:#333; margin-bottom:1.2rem; font-size:1.05rem; }
+.tabs { display:flex; background:#f1f1f1; border-radius:8px; padding:4px; margin-bottom:1.6rem; }
+.tab { flex:1; padding:10px 6px; border:none; background:transparent; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.82rem; color:#555; transition:all 0.2s; }
+.tab.active { background:var(--red); color:white; box-shadow:0 2px 6px rgba(139,0,0,0.3); }
+.form-group { text-align:left; margin-bottom:1.1rem; position:relative; }
+.form-group label { display:block; font-size:0.85rem; font-weight:600; color:#555; margin-bottom:5px; }
+.form-group input { width:100%; padding:12px 14px; border:1px solid #ddd; border-radius:7px; font-size:0.95rem; background:#fafafa; }
+.form-group input:focus { outline:none; border-color:var(--red); background:white; box-shadow:0 0 0 3px rgba(139,0,0,0.08); }
+.toggle-eye { position:absolute; right:12px; top:38px; cursor:pointer; user-select:none; color:#888; }
+.btn-login { width:100%; padding:13px; background:var(--red); color:white; border:none; border-radius:7px; font-size:1rem; font-weight:700; cursor:pointer; margin-top:0.5rem; }
+.btn-login:hover { background:var(--dark-red); }
+.btn-login:disabled { background:#bbb; cursor:not-allowed; }
+.alert { display:none; background:#f8d7da; color:#721c24; padding:11px 14px; border-radius:7px; margin-bottom:1.1rem; font-size:0.85rem; font-weight:600; border-left:4px solid #dc3545; }
+.alert.show { display:block; }
+.footer-note { margin-top:1.4rem; font-size:0.75rem; color:#aaa; }
+</style>
+</head>
+<body>
+<div class="login-card">
+<div class="brand">
+<img src="logo.png" alt="AIS Logo">
+<div class="brand-text"><div class="name">AIS</div></div>
+</div>
+<div class="subtitle">School Management Portal</div>
+<div class="sign-in-label">Sign in to continue</div>
+
+<div class="tabs">
+<button class="tab active" data-role="admin" onclick="selectRole('admin')">🔑 Admin</button>
+<button class="tab" data-role="teacher" onclick="selectRole('teacher')">🧑‍🏫 Teacher</button>
+<button class="tab" data-role="student" onclick="selectRole('student')">🎓 Student</button>
+</div>
+
+<div id="alertBox" class="alert"></div>
+
+<form id="loginForm">
+<div class="form-group">
+<label id="userLabel">Email</label>
+<input type="text" id="username" placeholder="Enter your email" required autocomplete="username">
+</div>
+<div class="form-group">
+<label id="passLabel">Password</label>
+<input type="password" id="password" placeholder="Enter your password" required autocomplete="current-password">
+<span class="toggle-eye" id="eyeToggle" onclick="togglePassword()">👁️</span>
+</div>
+<button type="submit" class="btn-login" id="loginBtn">Sign In</button>
+</form>
+
+<div class="footer-note">© 2026 AIS</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+let currentRole = 'admin';
+
+function selectRole(role) {
+  currentRole = role;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.role === role));
+  const userLabel = document.getElementById('userLabel');
+  const userInput = document.getElementById('username');
+  const passLabel = document.getElementById('passLabel');
+  const passInput = document.getElementById('password');
+  const eye = document.getElementById('eyeToggle');
+
+  if (role === 'admin') {
+    userLabel.textContent = 'Email'; userInput.placeholder = 'Enter your email'; userInput.type = 'email';
+    passLabel.textContent = 'Password'; passInput.type = 'password'; passInput.placeholder = 'Enter your password';
+    eye.style.display = 'inline';
+  } else if (role === 'teacher') {
+    userLabel.textContent = 'Teacher ID'; userInput.placeholder = 'e.g., TCH001'; userInput.type = 'text';
+    passLabel.textContent = 'Password'; passInput.type = 'password'; passInput.placeholder = 'Enter your password';
+    eye.style.display = 'inline';
+  } else {
+    userLabel.textContent = 'Student ID'; userInput.placeholder = 'e.g., STU001'; userInput.type = 'text';
+    passLabel.textContent = 'Date of Birth'; passInput.type = 'date'; passInput.placeholder = '';
+    eye.style.display = 'none';
+  }
+}
+
+function togglePassword() {
+  const pass = document.getElementById('password');
+  pass.type = pass.type === 'password' ? 'text' : 'password';
+}
+
+function showAlert(msg) {
+  const box = document.getElementById('alertBox');
+  box.textContent = msg; box.className = 'alert show';
+}
+
+// If an admin session already exists, skip straight to dashboard.
+(async () => {
+  const { data } = await sb.auth.getSession();
+  if (data.session) window.location.href = 'dashboard.html';
+})();
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Signing in...';
+
+  if (currentRole === 'admin') {
+    const { error } = await sb.auth.signInWithPassword({ email: username, password });
+    btn.disabled = false; btn.textContent = 'Sign In';
+    if (error) { showAlert(error.message || 'Could not sign in.'); return; }
+    window.location.href = 'dashboard.html';
+
+  } else if (currentRole === 'teacher') {
+    const { data, error } = await sb.from('teachers').select('*').ilike('teacher_id', username).maybeSingle();
+    btn.disabled = false; btn.textContent = 'Sign In';
+    if (error || !data || data.password !== password) { showAlert('Incorrect Teacher ID or password.'); return; }
+    sessionStorage.setItem('teacher_session', data.teacher_id);
+    window.location.href = 'teacher_dashboard.html';
+
+  } else {
+    const { data, error } = await sb.from('students').select('*').ilike('student_id', username).eq('dob', password).maybeSingle();
+    btn.disabled = false; btn.textContent = 'Sign In';
+    if (error || !data) { showAlert('No matching student found. Check your ID and date of birth.'); return; }
+    sessionStorage.setItem('student_session', data.student_id);
+    window.location.href = 'student_dashboard.html';
+  }
+});
+</script>
+</body>
+</html>
