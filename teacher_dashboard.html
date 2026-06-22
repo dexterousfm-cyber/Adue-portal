@@ -14,19 +14,25 @@ body { background:#f5f5f5; min-height:100vh; }
 .header h1 { font-size:17px; font-weight:600; }
 .btn-hdr { padding:8px 16px; border:1px solid rgba(255,255,255,0.4); background:rgba(255,255,255,0.15); color:white; border-radius:5px; cursor:pointer; font-size:0.85rem; font-weight:600; text-decoration:none; display:inline-block; }
 .btn-hdr:hover { background:rgba(255,255,255,0.3); }
-.main { padding:2rem; max-width:950px; margin:0 auto; }
+.main { padding:2rem; max-width:1000px; margin:0 auto; }
 .profile-card { background:white; border-radius:8px; padding:1.5rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); border-top:4px solid var(--red); margin-bottom:1.5rem; }
 .profile-card h2 { color:var(--red); font-size:1.2rem; margin-bottom:4px; }
 .profile-card p { color:#666; font-size:0.88rem; }
 .action-row { display:flex; gap:10px; margin-top:1rem; flex-wrap:wrap; }
 .btn-link { padding:10px 18px; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:13px; text-decoration:none; color:white; background:var(--red); }
 .btn-link:hover { background:var(--dark-red); }
+.note { background:#fff8e1; border-left:4px solid #ffc107; padding:12px 15px; border-radius:6px; font-size:0.85rem; color:#665c00; margin-bottom:1.5rem; }
+.stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.5rem; }
+.stat-card { background:white; border-radius:8px; padding:1.3rem; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.07); border-top:4px solid var(--red); }
+.stat-number { font-size:1.8rem; font-weight:bold; color:var(--red); }
+.stat-label { color:#666; font-size:0.78rem; text-transform:uppercase; }
 h3.table-heading { color:var(--red); font-size:1.1rem; margin:1.5rem 0 0.9rem; }
 .table-container { background:white; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.07); overflow-x:auto; }
 table { width:100%; border-collapse:collapse; }
 th { background:var(--red); color:white; padding:11px 13px; text-align:left; font-size:11px; text-transform:uppercase; }
 td { padding:10px 13px; border-bottom:1px solid #f0f0f0; font-size:13px; }
 .empty-state { text-align:center; padding:30px; color:#999; font-size:13px; }
+@media(max-width:600px) { .stats-grid { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -35,48 +41,87 @@ td { padding:10px 13px; border-bottom:1px solid #f0f0f0; font-size:13px; }
 <button class="btn-hdr" onclick="logout()">🚪 Logout</button>
 </div>
 
-<div class="main">
-<div class="profile-card" id="profileCard"></div>
-
-<h3 class="table-heading">👨‍🎓 My Class Roster</h3>
-<div class="table-container">
-<table><thead><tr><th>Name</th><th>ID</th><th>Gender</th><th>Parent Contact</th></tr></thead><tbody id="rosterBody"></tbody></table>
-<div id="rosterEmpty" class="empty-state" style="display:none;">No students in your assigned class yet, or you haven't been assigned a class. Ask the admin to set this on your teacher profile.</div>
-</div>
-</div>
+<div class="main" id="mainContent">Loading...</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script>
 const teacherId = sessionStorage.getItem('teacher_session');
-if (!teacherId) window.location.href = 'teacher_login.html';
+if (!teacherId) window.location.href = 'index.html';
 
-function logout() { sessionStorage.removeItem('teacher_session'); window.location.href = 'teacher_login.html'; }
+function logout() { sessionStorage.removeItem('teacher_session'); window.location.href = 'index.html'; }
+
+const ROLE_LABELS = {
+  class_teacher: 'Class Teacher', subject_teacher: 'Subject Teacher', principal: 'Principal',
+  vice_principal: 'Vice Principal', head_of_school: 'Head of School', counsellor: 'Counsellor',
+  exam_officer: 'Exam Officer', secretary: 'Secretary'
+};
+const MANAGEMENT_ROLES = ['principal', 'vice_principal', 'head_of_school', 'counsellor', 'exam_officer', 'secretary'];
 
 async function loadAll() {
   const { data: teacher } = await sb.from('teachers').select('*').eq('teacher_id', teacherId).maybeSingle();
   if (!teacher) { logout(); return; }
 
   const name = ((teacher.first_name || '') + ' ' + (teacher.last_name || '')).trim();
-  document.getElementById('profileCard').innerHTML = `
-<h2>${name}</h2>
-<p>${teacher.department || '-'} · ID: ${teacher.teacher_id} · Assigned Class: ${teacher.assigned_class || 'None'}</p>
+  const roleLabel = ROLE_LABELS[teacher.role] || teacher.role || 'Teacher';
+  const main = document.getElementById('mainContent');
+
+  if (MANAGEMENT_ROLES.includes(teacher.role)) {
+    // ===== Management staff: school-wide overview, no single-class roster =====
+    const [{ data: students }, { data: teachers }, { data: classes }] = await Promise.all([
+      sb.from('students').select('class'),
+      sb.from('teachers').select('id'),
+      sb.from('classes').select('class_name').order('class_name')
+    ]);
+    const counts = {};
+    (students || []).forEach(s => { if (s.class) counts[s.class] = (counts[s.class] || 0) + 1; });
+
+    main.innerHTML = `
+<div class="profile-card"><h2>${name}</h2><p>${roleLabel} · ID: ${teacher.teacher_id}</p></div>
+<div class="stats-grid">
+<div class="stat-card"><div class="stat-number">${(students || []).length}</div><div class="stat-label">Total Students</div></div>
+<div class="stat-card"><div class="stat-number">${(teachers || []).length}</div><div class="stat-label">Total Teachers</div></div>
+<div class="stat-card"><div class="stat-number">${(classes || []).length}</div><div class="stat-label">Total Classes</div></div>
+</div>
+<h3 class="table-heading">📚 Students per Class</h3>
+<div class="table-container">
+<table><thead><tr><th>Class</th><th>Students</th></tr></thead><tbody>
+${(classes || []).map(c => `<tr><td>${c.class_name}</td><td>${counts[c.class_name] || 0}</td></tr>`).join('') || '<tr><td colspan="2" class="empty-state">No classes set up yet.</td></tr>'}
+</tbody></table>
+</div>`;
+
+  } else if (teacher.assigned_class) {
+    // ===== Any teacher (class or subject) with an assigned class: roster + edit access =====
+    const { data: students } = await sb.from('students').select('*').eq('class', teacher.assigned_class);
+    main.innerHTML = `
+<div class="profile-card">
+<h2>${name}</h2><p>${roleLabel} · ID: ${teacher.teacher_id} · Assigned Class: ${teacher.assigned_class}</p>
 <div class="action-row">
 <a href="attendance.html" class="btn-link">📋 Take Attendance</a>
 <a href="grades.html" class="btn-link">📝 Enter Grades</a>
+</div></div>
+<h3 class="table-heading">👨‍🎓 My Class Roster</h3>
+<div class="table-container">
+<table><thead><tr><th>Name</th><th>ID</th><th>Gender</th><th>Parent Contact</th><th>Action</th></tr></thead><tbody>
+${(students && students.length) ? students.map(s => {
+  const sname = ((s.first_name || '') + ' ' + (s.last_name || '')).trim();
+  return `<tr><td>${sname}</td><td>${s.student_id}</td><td>${s.gender || '-'}</td><td>${s.parent_name || '-'} · ${s.parent_phone || '-'}</td>
+<td><a href="edit_student.html?id=${s.student_id}" class="btn-link" style="padding:5px 12px; font-size:11px;">Edit</a></td></tr>`;
+}).join('') : '<tr><td colspan="5" class="empty-state">No students in this class yet.</td></tr>'}
+</tbody></table>
 </div>`;
 
-  const tbody = document.getElementById('rosterBody');
-  const empty = document.getElementById('rosterEmpty');
-  if (!teacher.assigned_class) { empty.style.display = 'block'; return; }
-
-  const { data: students } = await sb.from('students').select('*').eq('class', teacher.assigned_class);
-  if (!students || students.length === 0) { empty.style.display = 'block'; return; }
-
-  tbody.innerHTML = students.map(s => {
-    const sname = ((s.first_name || '') + ' ' + (s.last_name || '')).trim();
-    return `<tr><td>${sname}</td><td>${s.student_id}</td><td>${s.gender || '-'}</td><td>${s.parent_name || '-'} · ${s.parent_phone || '-'}</td></tr>`;
-  }).join('');
+  } else {
+    // ===== Subject teacher, or class teacher with no assigned class yet =====
+    main.innerHTML = `
+<div class="profile-card">
+<h2>${name}</h2><p>${roleLabel} · ID: ${teacher.teacher_id}</p>
+<div class="action-row">
+<a href="attendance.html" class="btn-link">📋 Take Attendance</a>
+<a href="grades.html" class="btn-link">📝 Enter Grades</a>
+</div></div>
+<div class="note">You're not tied to one specific class. Use the buttons above and pick whichever class you're teaching today.</div>`;
+  }
 }
 loadAll();
 </script>

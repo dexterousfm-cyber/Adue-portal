@@ -236,20 +236,8 @@ function renderTable() {
 <td><button class="btn-sm btn-edit" onclick="editStudent('${id}')">Edit</button><button class="btn-sm btn-del" onclick="deleteStudent('${id}')">Delete</button></td></tr>`;
   }).join('');
 }
-async function editStudent(id) {
-  const s = studentsCache.find(st => st.student_id === id);
-  if (!s) return;
-  const newFirstName = prompt('First Name:', s.first_name || ''); if (newFirstName === null) return;
-  const newLastName = prompt('Last Name:', s.last_name || ''); if (newLastName === null) return;
-  const newClass = prompt('Class:', s.class || ''); if (newClass === null) return;
-  const newParentName = prompt('Parent Name:', s.parent_name || ''); if (newParentName === null) return;
-  const newParentPhone = prompt('Parent Phone:', s.parent_phone || ''); if (newParentPhone === null) return;
-  const { error } = await sb.from('students').update({
-    first_name: newFirstName.trim(), last_name: newLastName.trim(), class: newClass.trim(),
-    parent_name: newParentName.trim(), parent_phone: newParentPhone.trim()
-  }).eq('student_id', id);
-  if (error) { showAlert('Error updating student: ' + error.message, 'error'); return; }
-  await loadAndRender(); showAlert('Student updated successfully.');
+function editStudent(id) {
+  window.location.href = 'edit_student.html?id=' + encodeURIComponent(id);
 }
 async function deleteStudent(id) {
   if (!confirm('Delete this student? This cannot be undone.')) return;
